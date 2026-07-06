@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Media Bias Analysis — Silom Incident</title>
+<style>
+  :root{
+    --dark:#1C1C2E;
+    --mid:#2D2D44;
+    --light:#F4F4F8;
+    --accent:#E63946;
+    --accent2:#457B9D;
+    --gold:#F4A261;
+    --green:#2A9D8F;
+    --muted:#8A8A9A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    height:100%; width:100%; overflow:hidden;
+    font-family:'Segoe UI', Calibri, Arial, sans-serif;
+    background:#000;
+  }
+  .deck{
+    position:relative; width:100vw; height:100vh;
+  }
+  .slide{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:6vh 6vw;
+    opacity:0; visibility:hidden;
+    transform:translateX(40px) scale(0.98);
+    transition:opacity .5s ease, transform .5s ease, visibility .5s;
+    pointer-events:none;
+  }
+  .slide.active{
+    opacity:1; visibility:visible; transform:translateX(0) scale(1);
+    pointer-events:auto;
+  }
+  .slide.dark{ background:linear-gradient(135deg, var(--dark), #14141f); color:#fff; }
+  .slide.light{ background:var(--light); color:#222; }
+
+  h1{ font-size:clamp(2rem, 5vw, 3.2rem); font-weight:800; line-height:1.1; }
+  h2{ font-size:clamp(1.5rem, 3vw, 2.2rem); font-weight:800; }
+  .subtitle{ color:var(--muted); font-size:1.1rem; margin-top:0.5rem; }
+  .accent{ color:var(--accent); }
+  .accent2{ color:var(--accent2); }
+  .gold{ color:var(--gold); }
+  .green{ color:var(--green); }
+
+  /* fade-up children animation, staggered */
+  .fade-up{
+    opacity:0; transform:translateY(25px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .slide.active .fade-up{ opacity:1; transform:translateY(0); }
+  .slide.active .fade-up:nth-child(1){ transition-delay:.05s; }
+  .slide.active .fade-up:nth-child(2){ transition-delay:.15s; }
+  .slide.active .fade-up:nth-child(3){ transition-delay:.25s; }
+  .slide.active .fade-up:nth-child(4){ transition-delay:.35s; }
+  .slide.active .fade-up:nth-child(5){ transition-delay:.45s; }
+  .slide.active .fade-up:nth-child(6){ transition-delay:.55s; }
+
+  /* progress + nav */
+  .progress{
+    position:fixed; top:0; left:0; height:4px; background:var(--accent);
+    z-index:50; transition:width .4s ease;
+  }
+  .navdots{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    display:flex; gap:8px; z-index:50;
+  }
+  .dot{
+    width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.3);
+    cursor:pointer; transition:.3s;
+  }
+  .dot.active{ background:var(--accent); width:24px; border-radius:5px; }
+  .slidenum{
+    position:fixed; top:20px; right:30px; color:var(--muted);
+    font-size:.85rem; z-index:50; font-weight:600;
+  }
+  .arrow{
+    position:fixed; top:50%; transform:translateY(-50%);
+    background:rgba(255,255,255,.08); border:none; color:#fff;
+    width:46px; height:46px; border-radius:50%; font-size:1.4rem;
+    cursor:pointer; z-index:50; transition:.2s;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .arrow:hover{ background:rgba(255,255,255,.2); }
+  .arrow.left{ left:20px; }
+  .arrow.right{ right:20px; }
+
+  /* generic pieces */
+  .badge{
+    display:inline-block; padding:6px 16px; border-radius:20px;
+    font-size:.75rem; font-weight:700; letter-spacing:1px;
+    color:#fff;
+  }
+  .cardgrid{
+    display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-top:2rem;
+  }
+  .card{
+    background:rgba(255,255,255,.06); border-radius:16px; padding:1.4rem;
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .slide.light .card{
+    background:#fff; border:1px solid #e4e4ee; box-shadow:0 8px 20px rgba(0,0,0,.05);
+  }
+  .card h3{ font-size:1.05rem; margin-bottom:.5rem; }
+  .card p{ font-size:.92rem; line-height:1.5; color:inherit; opacity:.85; }
+
+  .row{
+    display:flex; align-items:center; gap:1rem;
+    background:rgba(255,255,255,.05); border-radius:12px;
+    padding:1rem 1.4rem; margin-top:.8rem;
+  }
+  .slide.light .row{ background:#fff; border:1px solid #e4e4ee; }
+  .row .icon{ font-size:1.4rem; min-width:2rem; }
+  .row .label{ font-weight:700; min-width:140px; }
+  .row .value{ opacity:.9; font-size:.95rem; }
+
+  .pulse{
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.05); }
+  }
+
+  .glow-red{ text-shadow:0 0 30px rgba(230,57,70,.5); }
+
+  /* Slide 1 title specific */
+  .title-hero{
+    display:flex; flex-direction:column; gap:1rem;
+  }
+  .title-hero .location{
+    display:flex; gap:2rem; margin-top:1.5rem; flex-wrap:wrap;
+  }
+  .loc-item{ font-size:.95rem; color:var(--muted); }
+  .loc-item b{ color:#fff; display:block; font-size:1.1rem; }
+
+  /* comparison table */
+  table{ width:100%; border-collapse:collapse; margin-top:1.5rem; }
+  th{
+    padding:.9rem; font-size:.95rem; color:#fff; text-align:left;
+  }
+  th.a{ background:var(--accent); border-radius:10px 10px 0 0; }
+  th.b{ background:var(--accent2); border-radius:10px 10px 0 0; }
+  th.cat{ background:transparent; color:var(--muted); }
+  td{
+    padding:.8rem .9rem; font-size:.88rem; border-bottom:1px solid #e4e4ee;
+  }
+  tr:nth-child(even) td{ background:#f7f7fb; }
+  td.catcell{ font-weight:700; color:#333; }
+
+  /* verdict cards */
+  .verdict-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-top:1.5rem; }
+  .verdict-card{ border-radius:16px; padding:1.5rem; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
+  .verdict-title{ font-size:1.3rem; font-weight:800; margin:.6rem 0 1rem; }
+  .verdict-point{ font-size:.9rem; padding:.4rem 0; opacity:.9; }
+
+  .center-note{
+    text-align:center; margin-top:1.5rem; font-style:italic;
+    color:var(--gold); background:rgba(244,162,97,.08);
+    padding:1rem; border-radius:10px; font-size:.95rem;
+  }
+
+  .emoji-lg{ font-size:2.2rem; }
+
+  .quote-box{
+    border-left:4px solid var(--accent);
+    background:rgba(230,57,70,.08);
+    padding:1.2rem 1.5rem; border-radius:0 12px 12px 0;
+    font-style:italic; margin-top:1.2rem; font-size:1.1rem;
+  }
+  .quote-box.blue{ border-left-color:var(--accent2); background:rgba(69,123,157,.08); }
+  .quote-en{ font-size:.85rem; color:var(--muted); margin-top:.4rem; font-style:normal; }
+
+  .helptext{
+    position:fixed; bottom:20px; right:30px; font-size:.75rem;
+    color:var(--muted); z-index:50;
+  }
+
+  @media (max-width:800px){
+    .cardgrid{ grid-template-columns:1fr; }
+    .verdict-grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="slidenum" id="slidenum">1 / 8</div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: TITLE -->
+  <section class="slide dark active">
+    <div class="title-hero">
+      <span class="badge fade-up" style="background:var(--accent); width:fit-content;">MEDIA BIAS ANALYSIS</span>
+      <h1 class="fade-up glow-red">Silom Stabbing Incident</h1>
+      <p class="subtitle fade-up">Comparing how two Thai news outlets covered the same event</p>
+      <div class="location fade-up">
+        <div class="loc-item">📅<b>June 27–28, 2026</b></div>
+        <div class="loc-item">📍<b>Silom Soi 5, Bangkok</b></div>
+        <div class="loc-item">⚖️<b>Assault & Weapon Charge</b></div>
+      </div>
+      <div class="row fade-up" style="margin-top:2rem; max-width:500px;">
+        <span class="icon">🗞️</span>
+        <div>
+          <div class="label" style="margin-bottom:.3rem;">Sources Compared</div>
+          <div class="value"><span class="accent">MGR Online</span> vs <span class="accent2">Naew Na / LINE Today</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: WHAT HAPPENED -->
+  <section class="slide light">
+    <h2 class="fade-up">What Happened? 🔍</h2>
+    <p class="subtitle fade-up">The facts, in plain terms</p>
+    <div class="cardgrid">
+      <div class="card fade-up">
+        <h3>🔪 The Attack</h3>
+        <p>A homeless man slashed a woman with a box cutter on a Silom sidewalk.</p>
+      </div>
+      <div class="card fade-up">
+        <h3>🩹 The Victim</h3>
+        <p>A 29-year-old Vietnamese worker. Needed 14 stitches for her arm wound.</p>
+      </div>
+      <div class="card fade-up">
+        <h3>🚔 The Arrest</h3>
+        <p>Police and bystanders caught him nearby. Box cutter seized as evidence.</p>
+      </div>
+      <div class="card fade-up">
+        <h3>💬 The Motive</h3>
+        <p>He confessed: <b>"I don't like fat people."</b> Police checking his mental health history.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: SOURCE A -->
+  <section class="slide dark">
+    <span class="badge fade-up" style="background:var(--accent); width:fit-content;">SOURCE A</span>
+    <h1 class="fade-up" style="margin-top:.5rem;">MGR Online</h1>
+    <div class="quote-box fade-up">
+      "สีลมระทึก! รวบชายไร้บ้านใช้คัตเตอร์ทำร้ายชาวต่างชาติ อ้างไม่ชอบคนอ้วน"
+      <div class="quote-en">"Silom Thriller! Homeless man caught using cutter to attack foreigner, claims dislike of fat people"</div>
+    </div>
+    <div class="row fade-up"><span class="icon">🗞️</span><span class="label">Tone</span><span class="value">Sensational — "thrilling" headline</span></div>
+    <div class="row fade-up"><span class="icon">👁️</span><span class="label">Framing</span><span class="value">Suspect = scary wandering outsider</span></div>
+    <div class="row fade-up"><span class="icon">⚠️</span><span class="label">Key Detail</span><span class="value gold">Mentions police <b>ignored</b> earlier warnings</span></div>
+  </section>
+
+  <!-- SLIDE 4: SOURCE B -->
+  <section class="slide dark">
+    <span class="badge fade-up" style="background:var(--accent2); width:fit-content;">SOURCE B</span>
+    <h1 class="fade-up" style="margin-top:.5rem;">Naew Na / LINE Today</h1>
+    <div class="quote-box blue fade-up">
+      "ระทึกสีลม หนุ่มร่างยักษ์คลั่ง ไล่ทำร้ายคน สารภาพ เกลียดคนอ้วน"
+      <div class="quote-en">"Silom Thriller: Raging giant of a man chases and attacks people, confesses he hates fat people"</div>
+    </div>
+    <div class="row fade-up"><span class="icon">🗞️</span><span class="label">Tone</span><span class="value">Even more dramatic — "raging giant"</span></div>
+    <div class="row fade-up"><span class="icon">👮</span><span class="label">Framing</span><span class="value">Names officers, praises police response</span></div>
+    <div class="row fade-up"><span class="icon">🚫</span><span class="label">Key Detail</span><span class="value gold">Skips the fact that police <b>ignored</b> earlier warnings</span></div>
+  </section>
+
+  <!-- SLIDE 5: COMPARISON TABLE -->
+  <section class="slide light">
+    <h2 class="fade-up">Side-by-Side ⚖️</h2>
+    <table class="fade-up">
+      <tr>
+        <th class="cat"></th>
+        <th class="a">MGR Online</th>
+        <th class="b">Naew Na</th>
+      </tr>
+      <tr><td class="catcell">Headline</td><td>"Thrilling"</td><td>"Raging Giant"</td></tr>
+      <tr><td class="catcell">Medical Info</td><td>Vague — "safe now"</td><td>Specific — 14 stitches</td></tr>
+      <tr><td class="catcell">Police Angle</td><td>Community caught him</td><td>Named officers praised</td></tr>
+      <tr><td class="catcell">Police Failure?</td><td>✅ Mentioned</td><td>❌ Left out</td></tr>
+      <tr><td class="catcell">Suspect Label</td><td>Wandering outsider</td><td>Dangerous "giant"</td></tr>
+    </table>
+  </section>
+
+  <!-- SLIDE 6: 3 ROLES OF MEDIA -->
+  <section class="slide dark">
+    <h2 class="fade-up">3 Roles of Media 🎭</h2>
+    <p class="subtitle fade-up">Gatekeeper · Agenda-Setter · Watchdog</p>
+
+    <div class="row fade-up">
+      <span class="icon">🚪</span>
+      <div>
+        <div class="label">Gatekeeper</div>
+        <div class="value">MGR led with shock value. Naew Na led with police success. Both picked what to spotlight.</div>
+      </div>
+    </div>
+    <div class="row fade-up">
+      <span class="icon">📋</span>
+      <div>
+        <div class="label">Agenda-Setter</div>
+        <div class="value">MGR pushes "police negligence" as a talking point. Naew Na pushes "police efficiency" instead.</div>
+      </div>
+    </div>
+    <div class="row fade-up">
+      <span class="icon">🐕</span>
+      <div>
+        <div class="label">Watchdog</div>
+        <div class="value gold"><b>Biggest gap:</b> Naew Na omits that police ignored earlier complaints — shielding them from blame.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: CONCLUSION -->
+  <section class="slide dark">
+    <h2 class="fade-up">Verdict 🏁</h2>
+    <div class="verdict-grid">
+      <div class="verdict-card fade-up" style="border-top:3px solid var(--accent);">
+        <span class="badge" style="background:var(--accent);">MGR Online</span>
+        <div class="verdict-title accent">⚠️ Partially Biased</div>
+        <div class="verdict-point">✔ Mentions police inaction</div>
+        <div class="verdict-point">✘ Sensational headline</div>
+        <div class="verdict-point">✘ Leads with shock, not substance</div>
+      </div>
+      <div class="verdict-card fade-up" style="border-top:3px solid var(--accent2);">
+        <span class="badge" style="background:var(--accent2);">Naew Na</span>
+        <div class="verdict-title accent2">🔴 More Biased</div>
+        <div class="verdict-point">✘ Hides police inaction</div>
+        <div class="verdict-point">✘ Dehumanizing language</div>
+        <div class="verdict-point">✘ Reads like a police statement</div>
+      </div>
+    </div>
+    <p class="center-note fade-up">Both outlets show bias through selective framing — neither source fully plays the watchdog role this story needed.</p>
+  </section>
+
+</div>
+
+<button class="arrow left" onclick="go(-1)">‹</button>
+<button class="arrow right" onclick="go(1)">›</button>
+<div class="navdots" id="navdots"></div>
+<div class="helptext">Use ← → arrow keys or click dots</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  const navdots = document.getElementById('navdots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goto(i);
+    navdots.appendChild(d);
+  });
+  const dots = document.querySelectorAll('.dot');
+
+  function render(){
+    slides.forEach((s, i) => s.classList.toggle('active', i === current));
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+    document.getElementById('slidenum').textContent = (current+1) + ' / ' + total;
+    document.getElementById('progress').style.width = ((current+1)/total*100) + '%';
+  }
+
+  function go(dir){
+    current = Math.max(0, Math.min(total - 1, current + dir));
+    render();
+  }
+  function goto(i){ current = i; render(); }
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowRight' || e.key === ' ') go(1);
+    if(e.key === 'ArrowLeft') go(-1);
+  });
+
+  render();
+</script>
+
+</body>
+</html>
